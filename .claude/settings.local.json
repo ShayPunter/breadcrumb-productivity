@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan make:migration:*)",
+      "Bash(docker-compose exec app rm:*)",
+      "Bash(docker-compose exec app npm install:*)",
+      "Bash(docker-compose exec app npm run:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
