@@ -16,63 +16,76 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// Show boxes for completed sessions + 1 gray box for "next session"
-const totalBoxes = computed(() => props.todayData.completed + 1);
+// Calculate boxes based on 10-minute increments
+const fullBoxes = computed(() => Math.floor(props.todayData.totalMinutes / 10));
+const remainingMinutes = computed(() => props.todayData.totalMinutes % 10);
+const partialFill = computed(() => (remainingMinutes.value / 10) * 100);
+const hasPartialBox = computed(() => remainingMinutes.value > 0);
 
-const getBoxClass = (index: number) => {
-    if (index < props.todayData.completed) {
-        return 'bg-green-500 dark:bg-green-500';
+// Total boxes to show: full boxes + partial box (if any) + 1 next box
+const totalBoxes = computed(() => fullBoxes.value + (hasPartialBox.value ? 1 : 0) + 1);
+
+const getBoxStyle = (index: number) => {
+    const boxIndex = index - 1; // Convert to 0-based
+
+    if (boxIndex < fullBoxes.value) {
+        // Full green box
+        return {
+            class: 'bg-green-500 dark:bg-green-500',
+            style: {},
+            showNumber: true,
+            number: boxIndex + 1,
+        };
+    } else if (boxIndex === fullBoxes.value && hasPartialBox.value) {
+        // Partial box with gradient
+        return {
+            class: 'bg-muted relative overflow-hidden',
+            style: {},
+            showGradient: true,
+            progress: partialFill.value,
+            showNumber: true,
+            number: boxIndex + 1,
+        };
+    } else {
+        // Next box (dashed)
+        return {
+            class: 'bg-muted border-2 border-dashed border-muted-foreground/30',
+            style: {},
+            showNumber: false,
+        };
     }
-    return 'bg-muted border-2 border-dashed border-muted-foreground/30';
 };
 </script>
 
 <template>
     <div class="space-y-6">
         <!-- Visual Progress -->
-        <div>
+        <div v-if="todayData.totalMinutes > 0">
             <h4 class="text-sm font-semibold mb-3">Today's Progress</h4>
             <div class="flex flex-wrap gap-2">
                 <div
                     v-for="index in totalBoxes"
                     :key="index"
                     class="w-12 h-12 rounded-lg transition-all hover:scale-110"
-                    :class="getBoxClass(index - 1)"
-                    :title="index <= todayData.completed ? `Session ${index}` : 'Next session'"
+                    :class="getBoxStyle(index).class"
+                    :title="getBoxStyle(index).showNumber ? `${index * 10} minutes` : 'Next 10 minutes'"
                 >
-                    <div class="flex items-center justify-center h-full text-sm font-bold text-white">
-                        {{ index <= todayData.completed ? index : '?' }}
+                    <!-- Partial fill gradient -->
+                    <div
+                        v-if="getBoxStyle(index).showGradient"
+                        class="absolute inset-0 bg-green-500 dark:bg-green-500 rounded-lg transition-all"
+                        :style="{ height: `${getBoxStyle(index).progress}%`, bottom: 0, top: 'auto' }"
+                    ></div>
+
+                    <div class="flex items-center justify-center h-full text-sm font-bold relative z-10"
+                         :class="getBoxStyle(index).showNumber ? 'text-white' : 'text-muted-foreground'">
+                        {{ getBoxStyle(index).showNumber ? getBoxStyle(index).number : '?' }}
                     </div>
                 </div>
             </div>
             <p class="text-xs text-muted-foreground mt-3">
-                Each box represents one completed {{ timerDuration }}-minute session
+                {{ todayData.totalMinutes }} minutes tracked today • Each box = 10 minutes
             </p>
-        </div>
-
-        <!-- Session Details -->
-        <div v-if="todayData.sessions.length > 0">
-            <h4 class="text-sm font-semibold mb-3">Session Details</h4>
-            <div class="space-y-2">
-                <div
-                    v-for="(session, index) in todayData.sessions"
-                    :key="index"
-                    class="flex items-center justify-between p-3 rounded-lg bg-muted"
-                >
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center text-white text-sm font-bold">
-                            {{ index + 1 }}
-                        </div>
-                        <div>
-                            <div class="font-medium">{{ session.task_description }}</div>
-                            <div class="text-xs text-muted-foreground">
-                                Completed at {{ session.completed_at }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="text-sm font-medium">{{ session.duration }} min</div>
-                </div>
-            </div>
         </div>
 
         <!-- Empty State -->

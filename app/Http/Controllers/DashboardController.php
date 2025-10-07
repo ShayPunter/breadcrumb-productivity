@@ -40,6 +40,11 @@ class DashboardController extends Controller
             ])
             ->get();
 
+        // Get last 365 days of sessions for year view
+        $yearSessions = $user->productivitySessions()
+            ->where('completed_at', '>=', Carbon::now()->subDays(364))
+            ->get();
+
         // Get all recent sessions for the list
         $recentSessions = $user->productivitySessions()
             ->orderBy('completed_at', 'desc')
@@ -102,11 +107,39 @@ class DashboardController extends Controller
             $weekNumber++;
         }
 
+        // Year data - group by day for contribution graph
+        $yearData = [];
+        $groupedSessions = $yearSessions->groupBy(function ($session) {
+            return $session->completed_at->format('Y-m-d');
+        });
+
+        // Calculate the start of the grid (52 weeks ago, adjusted to Sunday)
+        $startDate = Carbon::now()->subDays(364);
+        $startDate = $startDate->startOfWeek(Carbon::SUNDAY);
+
+        foreach ($groupedSessions as $dateStr => $daySessions) {
+            $date = Carbon::parse($dateStr);
+
+            // Calculate week index from start date
+            $daysDiff = $startDate->diffInDays($date);
+            $weekIndex = (int) floor($daysDiff / 7);
+
+            $yearData[$dateStr] = [
+                'date' => $dateStr,
+                'totalMinutes' => $daySessions->sum('duration'),
+                'sessionCount' => $daySessions->count(),
+                'dayOfWeek' => (int) $date->dayOfWeek, // 0-6, Sunday-Saturday
+                'weekOfYear' => $weekIndex, // Week index from start
+                'month' => (int) $date->month, // 1-12
+            ];
+        }
+
         return Inertia::render('Dashboard', [
             'timerDuration' => $settings->timer_duration,
             'todayData' => $todayData,
             'weekData' => $weekData,
             'monthData' => $monthData,
+            'yearData' => $yearData,
             'recentSessions' => $recentSessions->map(function ($session) {
                 return [
                     'id' => $session->id,

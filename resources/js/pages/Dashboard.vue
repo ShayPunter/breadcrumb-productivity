@@ -31,6 +31,14 @@ interface Props {
         count: number;
         totalMinutes: number;
     }>;
+    yearData?: Record<string, {
+        date: string;
+        totalMinutes: number;
+        sessionCount: number;
+        dayOfWeek: number;
+        weekOfYear: number;
+        month: number;
+    }>;
     recentSessions: Array<{
         id: number;
         task_description: string;
@@ -65,8 +73,6 @@ const recentSessions = ref(props.recentSessions);
                         :timer-duration="timerDuration"
                         @session-completed="(session) => {
                             recentSessions.unshift(session);
-                            // Refresh activity data
-                            window.location.reload();
                         }"
                     />
                 </div>
@@ -99,6 +105,7 @@ const recentSessions = ref(props.recentSessions);
                     :today-data="todayData"
                     :week-data="weekData"
                     :month-data="monthData"
+                    :year-data="yearData"
                     :timer-duration="timerDuration"
                 />
             </div>

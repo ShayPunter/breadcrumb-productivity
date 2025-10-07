@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import TodayView from './TodayView.vue';
 import WeekView from './WeekView.vue';
 import MonthView from './MonthView.vue';
+import YearView from './YearView.vue';
 
 interface Props {
     todayData: {
@@ -15,25 +16,32 @@ interface Props {
             completed_at: string;
         }>;
     };
-    weekData: Record<string, {
+    weekData?: Record<string, {
         date: string;
         dayName: string;
         count: number;
         totalMinutes: number;
         isToday: boolean;
     }>;
-    monthData: Record<string, {
-        weekLabel: string;
-        dateRange: string;
-        count: number;
+    monthData?: Record<string, {
+        date: string;
         totalMinutes: number;
+        dayOfMonth: number;
+    }>;
+    yearData?: Record<string, {
+        date: string;
+        totalMinutes: number;
+        sessionCount: number;
+        dayOfWeek: number;
+        weekOfYear: number;
+        month: number;
     }>;
     timerDuration: number;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 
-const activeView = ref<'today' | 'week' | 'month'>('today');
+const activeView = ref<'today' | 'week' | 'month' | 'year'>('today');
 </script>
 
 <template>
@@ -47,24 +55,17 @@ const activeView = ref<'today' | 'week' | 'month'>('today');
                 Today
             </Button>
             <Button
-                :variant="activeView === 'week' ? 'default' : 'ghost'"
-                @click="activeView = 'week'"
+                :variant="activeView === 'year' ? 'default' : 'ghost'"
+                @click="activeView = 'year'"
             >
-                This Week
-            </Button>
-            <Button
-                :variant="activeView === 'month' ? 'default' : 'ghost'"
-                @click="activeView = 'month'"
-            >
-                This Month
+                Activity
             </Button>
         </div>
 
         <!-- Views -->
         <div>
             <TodayView v-if="activeView === 'today'" :today-data="todayData" :timer-duration="timerDuration" />
-            <WeekView v-if="activeView === 'week'" :week-data="weekData" :timer-duration="timerDuration" />
-            <MonthView v-if="activeView === 'month'" :month-data="monthData" :timer-duration="timerDuration" />
+            <YearView v-if="activeView === 'year'" :year-data="yearData" :timer-duration="timerDuration" />
         </div>
     </div>
 </template>

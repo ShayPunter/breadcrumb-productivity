@@ -3,112 +3,74 @@ import { computed } from 'vue';
 
 interface Props {
     monthData: Record<string, {
-        weekLabel: string;
-        dateRange: string;
-        count: number;
+        date: string;
         totalMinutes: number;
+        dayOfMonth: number;
     }>;
     timerDuration: number;
 }
 
 const props = defineProps<Props>();
 
-const weeks = computed(() => Object.values(props.monthData));
-
-const totalSessions = computed(() => {
-    return weeks.value.reduce((sum, week) => sum + week.count, 0);
-});
+const days = computed(() => Object.values(props.monthData));
 
 const totalMinutes = computed(() => {
-    return weeks.value.reduce((sum, week) => sum + week.totalMinutes, 0);
+    return days.value.reduce((sum, day) => sum + day.totalMinutes, 0);
 });
 
-const getIntensityClass = (count: number) => {
-    if (count === 0) return 'bg-muted';
-    if (count <= 5) return 'bg-green-200 dark:bg-green-900';
-    if (count <= 10) return 'bg-green-300 dark:bg-green-700';
-    if (count <= 15) return 'bg-green-400 dark:bg-green-600';
-    return 'bg-green-500 dark:bg-green-500';
+// GitHub-style contribution intensity (max 6 hours = 360 minutes)
+const getIntensityClass = (totalMinutes: number) => {
+    if (totalMinutes === 0) return 'bg-muted';
+    const maxMinutes = 360; // 6 hours
+    const percentage = Math.min((totalMinutes / maxMinutes) * 100, 100);
+
+    if (percentage < 20) return 'bg-green-200 dark:bg-green-900';
+    if (percentage < 40) return 'bg-green-300 dark:bg-green-700';
+    if (percentage < 60) return 'bg-green-400 dark:bg-green-600';
+    if (percentage < 80) return 'bg-green-500 dark:bg-green-500';
+    return 'bg-green-600 dark:bg-green-400';
 };
 
-const maxCount = computed(() => {
-    return Math.max(...weeks.value.map(week => week.count), 1);
-});
-
-const getBarHeight = (count: number) => {
-    const percentage = (count / maxCount.value) * 100;
-    return `${Math.max(percentage, 5)}%`;
+const formatHoursMinutes = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0) {
+        return `${hours}h ${mins}m`;
+    }
+    return `${mins}m`;
 };
 </script>
 
 <template>
     <div class="space-y-6">
-        <!-- Week Bars Chart -->
+        <!-- GitHub-style Contribution Graph -->
         <div>
-            <h4 class="text-sm font-semibold mb-4">Weekly Progress</h4>
-            <div class="h-64 flex items-end gap-4 px-2">
-                <div
-                    v-for="week in weeks"
-                    :key="week.weekLabel"
-                    class="flex-1 flex flex-col items-center gap-2"
-                >
-                    <!-- Bar -->
-                    <div class="w-full flex items-end justify-center h-full">
-                        <div
-                            class="w-full rounded-t-lg transition-all hover:opacity-80 cursor-pointer flex items-end justify-center pb-2"
-                            :class="getIntensityClass(week.count)"
-                            :style="{ height: getBarHeight(week.count) }"
-                            :title="`${week.weekLabel}: ${week.count} session${week.count !== 1 ? 's' : ''} (${week.totalMinutes} min)`"
-                        >
-                            <span class="text-sm font-bold" :class="week.count > 0 ? 'text-white' : 'text-muted-foreground'">
-                                {{ week.count }}
-                            </span>
-                        </div>
-                    </div>
-                    <!-- Label -->
-                    <div class="text-center">
-                        <div class="text-xs font-medium">{{ week.weekLabel }}</div>
-                    </div>
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-sm font-semibold">This Month</h4>
+                <div class="text-sm text-muted-foreground">
+                    {{ formatHoursMinutes(totalMinutes) }} total
                 </div>
             </div>
-        </div>
 
-        <!-- Week Grid View -->
-        <div>
-            <h4 class="text-sm font-semibold mb-3">Week by Week</h4>
-            <div class="grid gap-3 md:grid-cols-2">
+            <div class="grid grid-cols-7 gap-2">
                 <div
-                    v-for="week in weeks"
-                    :key="week.weekLabel"
-                    class="rounded-lg p-4 transition-all hover:scale-105 cursor-pointer"
-                    :class="getIntensityClass(week.count)"
+                    v-for="day in days"
+                    :key="day.date"
+                    class="flex flex-col gap-1"
                 >
-                    <div class="flex items-start justify-between mb-2">
-                        <div>
-                            <div class="font-semibold" :class="week.count > 0 ? 'text-white' : ''">
-                                {{ week.weekLabel }}
-                            </div>
-                            <div class="text-xs" :class="week.count > 0 ? 'text-white/80' : 'text-muted-foreground'">
-                                {{ week.dateRange }}
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-2xl font-bold" :class="week.count > 0 ? 'text-white' : 'text-muted-foreground'">
-                                {{ week.count }}
-                            </div>
-                            <div class="text-xs" :class="week.count > 0 ? 'text-white/80' : 'text-muted-foreground'">
-                                sessions
-                            </div>
+                    <!-- Day number -->
+                    <div class="text-center">
+                        <div class="text-xs text-muted-foreground">
+                            {{ day.dayOfMonth }}
                         </div>
                     </div>
-                    <div class="flex items-center justify-between pt-2 border-t" :class="week.count > 0 ? 'border-white/20' : 'border-muted-foreground/20'">
-                        <div class="text-sm" :class="week.count > 0 ? 'text-white/90' : 'text-muted-foreground'">
-                            Total Time
-                        </div>
-                        <div class="text-sm font-medium" :class="week.count > 0 ? 'text-white' : ''">
-                            {{ week.totalMinutes }} min
-                        </div>
-                    </div>
+
+                    <!-- Contribution square -->
+                    <div
+                        class="aspect-square rounded-sm transition-all cursor-pointer hover:ring-2 hover:ring-primary/50"
+                        :class="getIntensityClass(day.totalMinutes)"
+                        :title="`${day.date}: ${day.totalMinutes} minutes tracked`"
+                    ></div>
                 </div>
             </div>
         </div>
@@ -116,18 +78,19 @@ const getBarHeight = (count: number) => {
         <!-- Legend -->
         <div class="flex items-center justify-between pt-4 border-t">
             <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>Less Active</span>
+                <span>Less</span>
                 <div class="flex gap-1">
-                    <div class="w-4 h-4 rounded bg-muted"></div>
-                    <div class="w-4 h-4 rounded bg-green-200 dark:bg-green-900"></div>
-                    <div class="w-4 h-4 rounded bg-green-300 dark:bg-green-700"></div>
-                    <div class="w-4 h-4 rounded bg-green-400 dark:bg-green-600"></div>
-                    <div class="w-4 h-4 rounded bg-green-500 dark:bg-green-500"></div>
+                    <div class="w-3 h-3 rounded-sm bg-muted"></div>
+                    <div class="w-3 h-3 rounded-sm bg-green-200 dark:bg-green-900"></div>
+                    <div class="w-3 h-3 rounded-sm bg-green-300 dark:bg-green-700"></div>
+                    <div class="w-3 h-3 rounded-sm bg-green-400 dark:bg-green-600"></div>
+                    <div class="w-3 h-3 rounded-sm bg-green-500 dark:bg-green-500"></div>
+                    <div class="w-3 h-3 rounded-sm bg-green-600 dark:bg-green-400"></div>
                 </div>
-                <span>More Active</span>
+                <span>More</span>
             </div>
             <div class="text-xs text-muted-foreground">
-                {{ timerDuration }} min per session
+                Max: 6 hours/day
             </div>
         </div>
     </div>
