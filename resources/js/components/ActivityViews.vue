@@ -2,8 +2,6 @@
 import { ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import TodayView from './TodayView.vue';
-import WeekView from './WeekView.vue';
-import MonthView from './MonthView.vue';
 import YearView from './YearView.vue';
 
 interface Props {
@@ -16,18 +14,6 @@ interface Props {
             completed_at: string;
         }>;
     };
-    weekData?: Record<string, {
-        date: string;
-        dayName: string;
-        count: number;
-        totalMinutes: number;
-        isToday: boolean;
-    }>;
-    monthData?: Record<string, {
-        date: string;
-        totalMinutes: number;
-        dayOfMonth: number;
-    }>;
     yearData?: Record<string, {
         date: string;
         totalMinutes: number;
